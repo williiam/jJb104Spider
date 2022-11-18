@@ -1,0 +1,11 @@
+version: '3.7'
+services:
+  server:
+    container_name: 104-data-crawl-to-db-script
+    restart: unless-stopped
+    build: 
+      context: .
+      dockerfile: dockerfile
+    network_mode: bridge
+    env_file:
+      - .env
