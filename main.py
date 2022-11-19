@@ -1,14 +1,16 @@
 from service import Job104Spider, PyMongo
-
+import datetime
+import traceback
+import re
 db_driver = PyMongo.db_driver()
 mongoClient = db_driver.connection
 
-def get_job_data():
-    """取得職缺資料"""
-    job104_spider = Job104Spider.Job104Spider()
-    keyWord = ''
-    max_mun= 100000
-    filter_params = {
+# 設定檔
+settings = {
+'search_config' : {
+    'keyWord': '',
+    'max_mun': 100000,
+    'filter_params' : {
         # 'area': '6001001000,6001016000',  # (地區) 台北市,高雄市
         # 's10': '1,2,4,8',  # 這是什麼
         # 's9': '1,2,4,8',  # (上班時段) 日班,夜班,大夜班,假日班
@@ -24,8 +26,49 @@ def get_job_data():
         # 'excludeJobKeyword': '科技',  # 排除關鍵字
         # 'kwop': '1',  # 只搜尋職務名稱
     }
-    total_count,jobs = job104_spider.search(keyWord, max_mun=max_mun, filter_params=filter_params)
+}
+}
+
+def get_job_data():
+    """取得職缺資料"""
+    search_config = settings['search_config']
+    job104_spider = Job104Spider.Job104Spider()
+    keyWord = search_config.get('keyWord')
+    max_mun= search_config.get('max_mun')
+    filter_params = search_config.get('filter_params')
+    total_count,jobs = job104_spider.search(keyWord, max_mun=max_mun, 
+    filter_params=filter_params)
+    print('total_count: ', total_count)
+    # TODO: 用公司ID爬公司資料(e.g. 資本額,)
     return jobs
+
+def clean_job_data(jobs):
+    def clean_job(job):
+        result = job
+        now = datetime.datetime.now()
+        # 整理job, 1. 新增timestamp(從_id抓) 2. 字串轉數字 3. 去除不必要欄位
+        result['jobType'] = int(job['jobType'])
+        result['jobNo'] = int(job['jobNo'])
+        result['jobRole'] = int(job['jobRole'])
+        result['jobRo'] = int(job['jobRo'])
+        result['period'] = int(job['period'])
+        result['salaryLow'] = int(job['salaryLow'])
+        result['salaryHigh'] = int(job['salaryHigh'])
+        result['lon'] = float(job['lon'])
+        result['lat'] = float(job['lon'])
+        result['createdAt'] = now
+        result['updatedAt'] = now
+        # 若tags 內的emp desc欄位有值, 則將其轉成數字
+        # print("job['tags']",job['tags'])
+        # if (len(job['tags'])>0):
+        #     if(job['tags']['emp']['desc']):
+        #         numbers = re.findall(r'\d+', job['tags']['emp']['desc'])
+        #         if(len(numbers)>0):
+        #             result['emp'] = int(numbers[0])
+        return result
+    result = map(clean_job, jobs)
+    return result
+    
 
 def save_job_data(jobs):
     """儲存職缺資料"""    
@@ -33,15 +76,17 @@ def save_job_data(jobs):
     jobDB = mongoClient["job"]
     # Collection
     jobCol = jobDB["softJob"]
-    # Insert
+    # bulk Insert document
     jobCol.insert_many(jobs)
 
 
 if __name__ == "__main__":
     try:
-        # 爬softJob
-        total_count,jobs = get_job_data()
-        # 寫入DB
+        jobs = get_job_data()
+
+        jobs = clean_job_data(jobs)
+
         save_job_data(jobs)
     except Exception as e:
         print(e)
+        traceback.print_exc()

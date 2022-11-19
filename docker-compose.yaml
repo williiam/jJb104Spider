@@ -6,6 +6,10 @@ services:
     build: 
       context: .
       dockerfile: dockerfile
+      args:
+        - MONGO_URL=${MONGO_URL:-NOT_EXIST}
     network_mode: bridge
     env_file:
       - .env
+    environment: 
+      - MONGO_URL=${MONGO_URL:-NOT_EXIST}

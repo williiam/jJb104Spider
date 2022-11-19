@@ -1,5 +1,5 @@
 import pandas as pd
-import PyMongo
+from service import PyMongo
 
 db_driver = PyMongo.db_driver()
 mongoClient = db_driver.connection
@@ -11,7 +11,7 @@ def get_job_data():
     # Collection
     jobCol = jobDB["softJob"]
     find_option = {
-        
+
     }
     # Find
     jobs = jobCol.find()
