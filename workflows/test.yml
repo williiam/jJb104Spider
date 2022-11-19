@@ -18,3 +18,4 @@ jobs:
 
       - name: build-image
         run: docker compose up 
+        
