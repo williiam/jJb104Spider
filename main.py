@@ -17,7 +17,7 @@ settings = {
 },
 'search_config' : {
     'keyWord': '',
-    'max_mun': 100000,
+    'max_mun': 10000,
     'filter_params' : {
         # 'area': '6001001000,6001016000',  # (地區) 台北市,高雄市
         # 's10': '1,2,4,8',  # 這是什麼
@@ -84,9 +84,10 @@ def save_job_data(jobs):
     jobDB = mongoClient["job"]
     # Collection
     jobCol = jobDB["softJob"]
-    # bulk Insert document
-    jobCol.insert_many(jobs)
 
+    # 每4000筆資料一次寫入
+    for i in range(0, len(jobs), 4000):
+        jobCol.insert_many(jobs[i:i+4000])
 
 if __name__ == "__main__":
     try:
