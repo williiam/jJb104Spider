@@ -5,8 +5,16 @@ import re
 db_driver = PyMongo.db_driver()
 mongoClient = db_driver.connection
 
+# TODO: 
+# uer dotenv to load .env file to fix the [cant run in debug mode ] problem
+
 # 設定檔
 settings = {
+# TODO: load DB and COLLECTION FROM .env
+'DB':{
+    'DB': 'job',
+    'Collection': 'tSoftJob'
+},
 'search_config' : {
     'keyWord': '',
     'max_mun': 100000,
