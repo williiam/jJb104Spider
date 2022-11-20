@@ -16,7 +16,7 @@ settings = {
 'DB':{
     'DB': 'job',
     'Collection': 'tSoftJob',
-    'insert_batch_size': 200,
+    'insert_batch_size': 1000,
 },
 'search_config' : {
     'keyWord': '',
