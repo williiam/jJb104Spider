@@ -3,6 +3,15 @@ import datetime
 import traceback
 import re
 from tqdm import tqdm
+import json
+import os
+import pandas as pd
+
+# 若環境變數沒有MONGO_URL,則import envSetting.py
+try:
+    os.environ['MONGO_URL']
+except:
+    import envSetting
 
 db_driver = PyMongo.db_driver()
 mongoClient = db_driver.connection
@@ -16,11 +25,11 @@ settings = {
 'DB':{
     'DB': 'job',
     'Collection': 'tSoftJob',
-    'insert_batch_size': 1000,
+    'insert_batch_size': 2000,
 },
 'search_config' : {
     'keyWord': '',
-    'max_mun': 100000,
+    'max_mun': 100,
     'filter_params' : {
         # 'area': '6001001000,6001016000',  # (地區) 台北市,高雄市
         # 's10': '1,2,4,8',  # 這是什麼
@@ -80,8 +89,21 @@ def clean_job_data(jobs):
     result = map(clean_job, jobs)
     return list(result)
     
+# 存到檔案
+def save_file_job_data(jobs):
+    db_name= settings['DB']['DB']
+    collection_name = settings['DB']['Collection']
+    # Serializing json
+    json_object = json.dumps(jobs, indent=4,default=str)
+    # Writing to sample.json
+    file_name = f'{db_name}_{collection_name}.json'
+    # 若存入檔案失敗，則錯誤訊息
+    with open(file_name, "w") as outfile:
+        outfile.write(json_object)
+        print(f'存到檔案: {file_name}')
 
-def save_job_data(jobs):
+# 寫入DB
+def insert_db_job_data(jobs):
     db_name= settings['DB']['DB']
     collection_name = settings['DB']['Collection']
     """儲存職缺資料"""    
@@ -95,6 +117,15 @@ def save_job_data(jobs):
             last_index = len(jobs)
         collection.insert_many(jobs[i:last_index])
 
+# 轉excel
+def make_excel(jobs):
+    try:
+        df = pd.DataFrame(jobs)
+        df.to_excel("softJob.xlsx", index=False)
+    except Exception as e:
+        print(e)
+
+
 # TODO: VSCODE DEBUG 模式
 if __name__ == "__main__":
     try:
@@ -102,7 +133,11 @@ if __name__ == "__main__":
 
         jobs = clean_job_data(jobs)
 
-        save_job_data(jobs)
+        save_file_job_data(jobs)
+
+        insert_db_job_data(jobs)
+
+        make_excel(jobs)
     except Exception as e:
         print(e)
         traceback.print_exc()
