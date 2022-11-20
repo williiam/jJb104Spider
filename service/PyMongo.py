@@ -3,8 +3,10 @@ import os
 import ssl
 import certifi
 from urllib.request import urlopen
-# from dotenv import load_dotenv
-# load_dotenv()
+
+from dotenv import load_dotenv
+load_dotenv()
+
 class db_driver(object):
    connection = None
    def __init__(self):
@@ -12,7 +14,7 @@ class db_driver(object):
          try:
             mongo_url=os.environ['MONGO_URL']
             print(mongo_url)
-            db_driver.connection = pymongo.MongoClient(mongo_url)
+            db_driver.connection = pymongo.MongoClient(mongo_url,tlsCAFile=certifi.where())
          except Exception as error:
             print("Error: Connection not established {}".format(error))
          else:

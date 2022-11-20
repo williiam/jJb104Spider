@@ -1,6 +1,7 @@
 import time
 import random
 import requests
+from tqdm import tqdm
 
 class Job104Spider():
     def search(self, keyword, max_mun=10, filter_params=None, sort_type='符合度', is_sort_asc=False):
@@ -33,7 +34,22 @@ class Job104Spider():
         query += sort_params
 
         page = 0
-        while len(jobs) < max_mun:
+
+        # 先取total count
+        params = f'{query}&page={page}'
+        r = requests.get(url, params=params, headers=headers)
+        if r.status_code != requests.codes.ok:
+            print('請求失敗', r.status_code)
+            data = r.json()
+            print(data['status'], data['statusMsg'], data['errorMsg'])
+        data = r.json()
+        total_count = data['data']['totalCount']
+        if max_mun > total_count:
+            max_mun = total_count
+        # TODO: PROGRESS BAR
+        print(f'共有{total_count}筆資料，開始爬取{max_mun}筆資料')
+        progress = tqdm(total=max_mun)
+        while(len(jobs) < max_mun):
             params = f'{query}&page={page}'
             r = requests.get(url, params=params, headers=headers)
             if r.status_code != requests.codes.ok:
@@ -49,9 +65,9 @@ class Job104Spider():
             if (page == data['data']['totalPage']) or (data['data']['totalPage'] == 0):
                 break
             page += 1
-            time.sleep(random.uniform(3, 5))
-
-        return total_count, jobs[:max_mun]
+            time.sleep(random.uniform(1,3))
+            progress.update(len(jobs))
+        return total_count, jobs
 
     def get_job(self, job_id):
         """取得職缺詳細資料"""

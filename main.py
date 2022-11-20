@@ -2,6 +2,8 @@ from service import Job104Spider, PyMongo
 import datetime
 import traceback
 import re
+from tqdm import tqdm
+
 db_driver = PyMongo.db_driver()
 mongoClient = db_driver.connection
 
@@ -13,11 +15,12 @@ settings = {
 # TODO: load DB and COLLECTION FROM .env
 'DB':{
     'DB': 'job',
-    'Collection': 'tSoftJob'
+    'Collection': 'tSoftJob',
+    'insert_batch_size': 200,
 },
 'search_config' : {
     'keyWord': '',
-    'max_mun': 10000,
+    'max_mun': 100000,
     'filter_params' : {
         # 'area': '6001001000,6001016000',  # (地區) 台北市,高雄市
         # 's10': '1,2,4,8',  # 這是什麼
@@ -75,20 +78,24 @@ def clean_job_data(jobs):
         #             result['emp'] = int(numbers[0])
         return result
     result = map(clean_job, jobs)
-    return result
+    return list(result)
     
 
 def save_job_data(jobs):
+    db_name= settings['DB']['DB']
+    collection_name = settings['DB']['Collection']
     """儲存職缺資料"""    
-    # DB
-    jobDB = mongoClient["job"]
-    # Collection
-    jobCol = jobDB["softJob"]
+    db = mongoClient[db_name]
+    collection = db[collection_name]
+    insert_batch_size = settings['DB']['insert_batch_size']
+    print("寫入資料庫中...")
+    for i in tqdm(range(0, len(jobs), insert_batch_size)):
+        last_index = i + insert_batch_size
+        if(last_index>len(jobs)):
+            last_index = len(jobs)
+        collection.insert_many(jobs[i:last_index])
 
-    # 每4000筆資料一次寫入
-    for i in range(0, len(jobs), 4000):
-        jobCol.insert_many(jobs[i:i+4000])
-
+# TODO: VSCODE DEBUG 模式
 if __name__ == "__main__":
     try:
         jobs = get_job_data()
